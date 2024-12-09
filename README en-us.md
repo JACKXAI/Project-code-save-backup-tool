@@ -103,10 +103,6 @@ Contributions are welcome! You can suggest improvements, report issues, or submi
 
 - Submitting an Issue or Pull Request to the project’s GitHub repository.
 
-## License
-
-This project is open-source under the MIT License. Please refer to the [LICENSE](LICENSE) file for details.
-
 ---
 
 Thank you for using the **Code Backup Tool**! If you encounter any issues or have any suggestions during use, please feel free to contact me.
