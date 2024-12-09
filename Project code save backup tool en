@@ -1,0 +1,182 @@
+import os
+import sys
+from datetime import datetime
+
+def get_code_files(directory):
+    """
+    Traverse the specified path to collect the paths of all source code files.
+    """
+    code_files = []
+    # Define a set of source code file extensions
+    source_extensions = (
+        '.py', '.java', '.cpp', '.c', '.h', '.cs', '.js', '.ts',
+        '.jsx', '.tsx', '.rb', '.go', '.php', '.swift', '.kt',
+        '.m', '.mm'
+    )
+    for root, _, files in os.walk(directory):
+        for file in files:
+            # Check if the file is a source code file
+            if file.endswith(source_extensions):
+                file_path = os.path.join(root, file)
+                code_files.append(file_path)
+    return code_files
+
+def get_directory_tree(directory):
+    """
+    Get a string representation of the directory tree structure,
+    showing the names of each folder and file in a top-down manner,
+    similar to VSCode’s file tree.
+    """
+    tree_str = ''
+    prefix = ''
+    # Get the project root directory name
+    project_name = os.path.basename(os.path.abspath(directory))
+    tree_str += f'{project_name}/\n'
+    tree_str += build_tree(directory, prefix)
+    return '```\n' + tree_str + '```\n'
+
+def build_tree(directory, prefix):
+    """
+    Recursively build the directory tree string.
+    """
+    tree_str = ''
+    try:
+        contents = os.listdir(directory)
+    except PermissionError:
+        return tree_str  # Skip directories without access
+    contents = sorted(contents, key=lambda s: s.lower())
+    pointers = ['├── '] * (len(contents) - 1) + ['└── '] if contents else []
+    for pointer, item in zip(pointers, contents):
+        path = os.path.join(directory, item)
+        if os.path.isdir(path):
+            tree_str += f'{prefix}{pointer}{item}/\n'
+            extension = '│   ' if pointer == '├── ' else '    '
+            tree_str += build_tree(path, prefix + extension)
+        else:
+            tree_str += f'{prefix}{pointer}{item}\n'
+    return tree_str
+
+def get_language_from_extension(file_path):
+    """
+    Return the corresponding language type based on the file extension,
+    for use in Markdown code blocks.
+    """
+    extension = os.path.splitext(file_path)[1].lower()
+    language_map = {
+        '.py': 'python',
+        '.java': 'java',
+        '.cpp': 'cpp',
+        '.c': 'c',
+        '.h': 'cpp',
+        '.cs': 'csharp',
+        '.js': 'javascript',
+        '.ts': 'typescript',
+        '.jsx': 'javascript',
+        '.tsx': 'typescript',
+        '.rb': 'ruby',
+        '.go': 'go',
+        '.php': 'php',
+        '.swift': 'swift',
+        '.kt': 'kotlin',
+        '.m': 'objective-c',
+        '.mm': 'objective-c',
+    }
+    return language_map.get(extension, '')
+
+def write_code_and_structure(directory, output_file):
+    """
+    Write the project's directory structure and all source code file contents
+    in Markdown format to the specified output file.
+    """
+    code_files = get_code_files(directory)
+    total_files = len(code_files)
+    processed_files = 0
+
+    try:
+        with open(output_file, 'w', encoding='utf-8') as out_file:
+            # Write project name
+            project_name = os.path.basename(os.path.abspath(directory))
+            out_file.write(f'# Project Name: {project_name}\n\n')
+
+            # Write project directory structure
+            out_file.write('## Project Directory Structure:\n\n')
+            tree_structure = get_directory_tree(directory)
+            out_file.write(tree_structure)
+            out_file.write('\n')
+
+            # Write all source code file contents
+            out_file.write('## All Source Code Files Contents:\n\n')
+            for file_path in code_files:
+                processed_files += 1
+                relative_path = os.path.relpath(file_path, directory)
+                out_file.write(f'### File: {relative_path}\n\n')
+                out_file.write('```{0}\n'.format(get_language_from_extension(file_path)))
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as code_file:
+                        out_file.write(code_file.read())
+                except UnicodeDecodeError:
+                    # If encoding error, try another encoding
+                    try:
+                        with open(file_path, 'r', encoding='latin-1') as code_file:
+                            out_file.write(code_file.read())
+                    except Exception as e:
+                        out_file.write(f'Cannot read file {relative_path}, error: {e}\n')
+                out_file.write('```\n\n')
+                if total_files > 10 and processed_files % (total_files // 10) == 0:
+                    print(f'Progress: Processed {processed_files}/{total_files} files...')
+    except Exception as e:
+        print(f'Error occurred while writing to output file: {e}')
+        sys.exit(1)
+
+if __name__ == '__main__':
+    while True:
+        print('====================================')
+        print('Code Backup Tool_0.0.5')
+        print('Please follow the prompts:\n')
+
+        project_directory = input('Enter project path (absolute path):\n> ').strip()
+        if not project_directory:
+            print('Error: No project path provided, please try again.\n')
+            continue
+
+        if not os.path.isdir(project_directory):
+            print('Error: The specified path does not exist or is not a valid directory, please try again.\n')
+            continue
+
+        # Get save path
+        save_directory = input('Enter the path to save the backup file (absolute path, defaults to a folder named backup_code in the script directory):\n> ').strip()
+        if not save_directory:
+            # Default to backup_code folder in script directory
+            script_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
+            save_directory = os.path.join(script_directory, 'backup_code')
+        if not os.path.exists(save_directory):
+            try:
+                os.makedirs(save_directory)
+            except Exception as e:
+                print(f'Error: Unable to create save directory. {e}\n')
+                continue
+
+        # Create backup folder for the project
+        project_name = os.path.basename(os.path.abspath(project_directory))
+        project_backup_folder = os.path.join(save_directory, project_name)
+
+        # Check for existing backup with the same name
+        unique_suffix = 1
+        base_backup_folder = project_backup_folder
+        while os.path.exists(project_backup_folder):
+            project_backup_folder = f"{base_backup_folder}_{unique_suffix}"
+            unique_suffix += 1
+
+        try:
+            os.makedirs(project_backup_folder)
+        except Exception as e:
+            print(f'Error: Unable to create project backup folder. {e}\n')
+            continue
+
+        # Get the current time, precise to the minute
+        current_time = datetime.now().strftime('%Y%m%d_%H%M')
+        # Output filename is project directory name plus timestamp
+        output_filename = f'{project_name}_{current_time}.md'
+        output_path = os.path.join(project_backup_folder, output_filename)
+
+        print
