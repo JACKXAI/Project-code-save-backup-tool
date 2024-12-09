@@ -100,7 +100,6 @@
 欢迎提出建议、报告问题或提交代码改进。您可以通过以下方式参与项目：
 
 - 提交 Issue 或 Pull Request 到项目的 GitHub 仓库。
-- 联系项目维护者，邮箱：your.email@example.com。
 
 ## 许可证
 
