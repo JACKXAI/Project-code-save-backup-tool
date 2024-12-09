@@ -179,4 +179,23 @@ if __name__ == '__main__':
         output_filename = f'{project_name}_{current_time}.md'
         output_path = os.path.join(project_backup_folder, output_filename)
 
-        print
+        print('\nStarting to organize project files, please wait...\n')
+        write_code_and_structure(project_directory, output_path)
+
+        print('\n------------------------------------')
+        print(f'Organization complete, results saved to:\n{output_path}')
+        print('------------------------------------\n')
+
+        print('Please enter an operation number:')
+        print('1. Continue backing up other projects')
+        print('0. Exit the program')
+        choice = input('> ').strip()
+        if choice == '1':
+            print('\nStarting new backup operation...\n')
+            continue
+        elif choice == '0':
+            print('\nProgram exited')
+            break
+        else:
+            print('\nError: Invalid input, the program will exit.')
+            break
